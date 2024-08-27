@@ -1,11 +1,11 @@
 ### Test root endpoint
-GET http://127.0.0.1:5000/
+GET http://127.0.0.1:5001/
 Accept: application/json
 
 ###
 
 ### Test text processing endpoint with JSON payload
-POST http://127.0.0.1:5000/process_text
+POST http://127.0.0.1:5001/process_text
 Content-Type: application/json
 
 {
@@ -15,7 +15,7 @@ Content-Type: application/json
 ###
 
 ### Test text processing with a longer, more complex input
-POST http://127.0.0.1:5000/process_text
+POST http://127.0.0.1:5001/process_text
 Content-Type: application/json
 
 {
@@ -25,7 +25,7 @@ Content-Type: application/json
 ###
 
 ### Test error handling with empty content
-POST http://127.0.0.1:5000/process_text
+POST http://127.0.0.1:5001/process_text
 Content-Type: application/json
 
 {
@@ -35,7 +35,7 @@ Content-Type: application/json
 ###
 
 ### Test error handling with very short content
-POST http://127.0.0.1:5000/process_text
+POST http://127.0.0.1:5001/process_text
 Content-Type: application/json
 
 {
@@ -45,7 +45,7 @@ Content-Type: application/json
 ###
 
 ### Test processing with content in a different language (Spanish)
-POST http://127.0.0.1:5000/process_text
+POST http://127.0.0.1:5001/process_text
 Content-Type: application/json
 
 {
@@ -55,7 +55,7 @@ Content-Type: application/json
 ###
 
 ### Test processing with content containing special characters and numbers
-POST http://127.0.0.1:5000/process_text
+POST http://127.0.0.1:5001/process_text
 Content-Type: application/json
 
 {
