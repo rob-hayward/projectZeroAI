@@ -1,0 +1,63 @@
+### Test root endpoint
+GET http://127.0.0.1:5000/
+Accept: application/json
+
+###
+
+### Test text processing endpoint with JSON payload
+POST http://127.0.0.1:5000/process_text
+Content-Type: application/json
+
+{
+  "content": "This is a sample input string with AI, ML, and TAG as important keywords."
+}
+
+###
+
+### Test text processing with a longer, more complex input
+POST http://127.0.0.1:5000/process_text
+Content-Type: application/json
+
+{
+  "content": "Artificial Intelligence (AI) and Machine Learning (ML) are revolutionizing various industries. Natural Language Processing (NLP) is a subfield of AI that focuses on the interaction between computers and humans using natural language. The advancement of deep learning techniques has significantly improved the accuracy of NLP models, enabling applications like automatic summarization, sentiment analysis, and machine translation. These technologies are crucial for developing sophisticated TAG systems that can understand and categorize human language with high precision."
+}
+
+###
+
+### Test error handling with empty content
+POST http://127.0.0.1:5000/process_text
+Content-Type: application/json
+
+{
+  "content": ""
+}
+
+###
+
+### Test error handling with very short content
+POST http://127.0.0.1:5000/process_text
+Content-Type: application/json
+
+{
+  "content": "Short."
+}
+
+###
+
+### Test processing with content in a different language (Spanish)
+POST http://127.0.0.1:5000/process_text
+Content-Type: application/json
+
+{
+  "content": "La inteligencia artificial y el aprendizaje automático están transformando la forma en que interactuamos con la tecnología. Los sistemas de etiquetado avanzados utilizan estas tecnologías para mejorar la categorización y búsqueda de información."
+}
+
+###
+
+### Test processing with content containing special characters and numbers
+POST http://127.0.0.1:5000/process_text
+Content-Type: application/json
+
+{
+  "content": "AI & ML are key to Industry 4.0! The integration of IoT devices, big data analytics, and smart algorithms is creating a new paradigm for manufacturing and supply chain management. By 2025, it's estimated that 75% of enterprises will be using AI-powered solutions."
+}
