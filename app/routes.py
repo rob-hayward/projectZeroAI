@@ -1,7 +1,6 @@
 from fastapi import APIRouter, HTTPException, Body, BackgroundTasks
 from fastapi.responses import JSONResponse
-from app.models import InputData, OutputData, WordDefinitions, TextAnalysis, AsyncProcessingResponse, \
-    AsyncProcessingResult
+from app.models import InputData, OutputData, WordDefinitions, TextAnalysis, AsyncProcessingResponse, AsyncProcessingResult
 from keybert import KeyBERT
 from transformers import pipeline
 import torch
@@ -11,7 +10,7 @@ import asyncio
 from redis import asyncio as aioredis
 import json
 from collections import Counter
-from typing import Dict, Tuple, Optional, List
+from typing import Dict, Tuple, List
 
 router = APIRouter()
 
@@ -27,18 +26,15 @@ logging.basicConfig(level=logging.INFO)
 # Initialize Redis client
 redis = None
 
-
 async def get_redis():
     global redis
     if redis is None:
         redis = aioredis.from_url("redis://localhost")
     return redis
 
-
 def simple_offensive_check(text: str) -> bool:
     offensive_words = ['badword1', 'badword2', 'badword3']  # Add your own list of offensive words
     return any(word in text.lower() for word in offensive_words)
-
 
 @router.post("/process_text", response_model=OutputData)
 async def process_text(input_data: InputData = Body(...)):
@@ -48,7 +44,7 @@ async def process_text(input_data: InputData = Body(...)):
         if not input_data.data.strip():
             raise HTTPException(status_code=422, detail="Content cannot be empty")
 
-        word_definitions, keyword_frequencies = process_with_ai(input_data.data, input_data.preface)
+        word_definitions, keyword_frequencies = process_with_ai(input_data.data)
         is_offensive = simple_offensive_check(input_data.data)
 
         return OutputData(
@@ -59,10 +55,11 @@ async def process_text(input_data: InputData = Body(...)):
             )
         )
 
+    except HTTPException as he:
+        raise he
     except Exception as e:
         logging.error(f"An error occurred: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.post("/process_text_async", response_model=AsyncProcessingResponse)
 async def process_text_async(background_tasks: BackgroundTasks, input_data: InputData = Body(...)):
@@ -78,7 +75,6 @@ async def process_text_async(background_tasks: BackgroundTasks, input_data: Inpu
         logging.error(f"An error occurred: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.get("/get_result/{task_id}", response_model=AsyncProcessingResult)
 async def get_result(task_id: str):
     redis = await get_redis()
@@ -86,7 +82,6 @@ async def get_result(task_id: str):
     if result is None:
         return AsyncProcessingResult(status="processing")
     return AsyncProcessingResult(status="completed", processed_data=json.loads(result))
-
 
 def extract_keywords(text: str) -> Dict[str, int]:
     logging.info("Extracting keywords and frequencies.")
@@ -99,45 +94,38 @@ def extract_keywords(text: str) -> Dict[str, int]:
             diversity=KEYWORD_DIVERSITY
         )
 
-        # Convert to dictionary of keyword frequencies
         keyword_frequencies = dict(Counter(keyword for keyword, _ in keywords))
-
         return keyword_frequencies
 
     except Exception as e:
         logging.error(f"Error during keyword extraction: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error during keyword extraction: {str(e)}")
 
-
-def generate_definitions(keywords: List[str], text: str, preface: Optional[str] = None) -> Dict[str, str]:
+def generate_definitions(keywords: List[str], text: str) -> Dict[str, str]:
     logging.info("Generating definitions for keywords.")
     try:
-        context = f"{preface}\n\n" if preface else ""
         definitions = {}
         for keyword in keywords:
-            prompt = f"Define '{keyword}' in the context of: {context}{text[:200]}..."
-            response = definition_model(prompt, max_length=50, num_return_sequences=1)
-            definitions[keyword] = response[0]['generated_text'].strip()
+            prompt = f"Define '{keyword}' in the context of the following text: {text[:500]}..."
+            response = definition_model(prompt, max_length=100, num_return_sequences=1)
+            definition = response[0]['generated_text'].strip()
+            definition = definition.replace(f"'{keyword}'", keyword).capitalize()
+            if not definition.endswith('.'):
+                definition += '.'
+            definitions[keyword] = definition
         return definitions
-
     except Exception as e:
         logging.error(f"Error during definition generation: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error during definition generation: {str(e)}")
 
-
-def process_with_ai(text: str, preface: Optional[str] = None) -> Tuple[Dict[str, str], Dict[str, int]]:
-    # Step 1: Extract keywords and their frequencies (no preface used)
+def process_with_ai(text: str) -> Tuple[Dict[str, str], Dict[str, int]]:
     keyword_frequencies = extract_keywords(text)
-
-    # Step 2: Generate definitions for the extracted keywords (using preface for context)
-    word_definitions = generate_definitions(list(keyword_frequencies.keys()), text, preface)
-
+    word_definitions = generate_definitions(list(keyword_frequencies.keys()), text)
     return word_definitions, keyword_frequencies
-
 
 async def process_with_ai_async(input_data: InputData, task_id: str):
     try:
-        word_definitions, keyword_frequencies = process_with_ai(input_data.data, input_data.preface)
+        word_definitions, keyword_frequencies = process_with_ai(input_data.data)
         is_offensive = simple_offensive_check(input_data.data)
 
         result = OutputData(

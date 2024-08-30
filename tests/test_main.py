@@ -15,7 +15,6 @@ def test_process_text():
     response = client.post("/process_text", json={
         "id": "test1",
         "data": "This is a test sentence for AI and ML.",
-        "preface": "Analyze the following text:"
     })
     assert response.status_code == 200
     result = response.json()
@@ -32,7 +31,6 @@ def test_process_text_short():
     response = client.post("/process_text", json={
         "id": "test3",
         "data": "Short.",
-        "preface": "Analyze this:"
     })
     assert response.status_code == 200
     result = response.json()
@@ -43,7 +41,6 @@ def test_process_text_spanish():
     response = client.post("/process_text", json={
         "id": "test4",
         "data": "La inteligencia artificial y el aprendizaje automático están transformando la tecnología.",
-        "preface": "Analyze this Spanish text:"
     })
     assert response.status_code == 200
     result = response.json()
@@ -54,7 +51,6 @@ def test_process_text_special_chars():
     response = client.post("/process_text", json={
         "id": "test5",
         "data": "AI & ML are key to Industry 4.0! Integration of IoT, big data, and smart algorithms.",
-        "preface": "Analyze this text with special characters:"
     })
     assert response.status_code == 200
     result = response.json()
@@ -66,7 +62,6 @@ async def test_process_text_async(mock_redis):
     response = client.post("/process_text_async", json={
         "id": "async_test1",
         "data": "This is a test sentence for async processing.",
-        "preface": "Analyze this asynchronously:"
     })
     assert response.status_code == 200
     assert "task_id" in response.json()
@@ -75,7 +70,9 @@ async def test_process_text_async(mock_redis):
 @pytest.mark.asyncio
 async def test_get_result(mock_redis):
     mock_result = {
-        "word_definitions": {"test": "A definition"},
+        "word_definitions": {
+            "definitions": {"test": "A definition"}
+        },
         "text_analysis": {
             "keyword_frequencies": {"test": 1},
             "is_offensive": False

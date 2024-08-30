@@ -10,8 +10,7 @@ Content-Type: application/json
 
 {
   "id": "test1",
-  "data": "This is a sample input string with AI, ML, and TAG as important keywords.",
-  "preface": "Analyze the following text for key concepts in technology:"
+  "data": "This is a sample input string with AI, ML, and TAG as important keywords."
 }
 
 ###
@@ -22,8 +21,7 @@ Content-Type: application/json
 
 {
   "id": "test2",
-  "data": "Artificial Intelligence (AI) and Machine Learning (ML) are revolutionizing various industries. Natural Language Processing (NLP) is a subfield of AI that focuses on the interaction between computers and humans using natural language. The advancement of deep learning techniques has significantly improved the accuracy of NLP models, enabling applications like automatic summarization, sentiment analysis, and machine translation. These technologies are crucial for developing sophisticated TAG systems that can understand and categorize human language with high precision.",
-  "preface": "Analyze the following text for key concepts in AI and NLP:"
+  "data": "Artificial Intelligence (AI) and Machine Learning (ML) are revolutionizing various industries. Natural Language Processing (NLP) is a subfield of AI that focuses on the interaction between computers and humans using natural language. The advancement of deep learning techniques has significantly improved the accuracy of NLP models, enabling applications like automatic summarization, sentiment analysis, and machine translation. These technologies are crucial for developing sophisticated TAG systems that can understand and categorize human language with high precision."
 }
 
 ###
@@ -34,8 +32,7 @@ Content-Type: application/json
 
 {
   "id": "test3",
-  "data": "",
-  "preface": "This should fail due to empty content:"
+  "data": ""
 }
 
 ###
@@ -46,8 +43,7 @@ Content-Type: application/json
 
 {
   "id": "test4",
-  "data": "Short.",
-  "preface": "Analyze this brief text:"
+  "data": "Short."
 }
 
 ###
@@ -58,8 +54,7 @@ Content-Type: application/json
 
 {
   "id": "test5",
-  "data": "La inteligencia artificial y el aprendizaje automático están transformando la forma en que interactuamos con la tecnología. Los sistemas de etiquetado avanzados utilizan estas tecnologías para mejorar la categorización y búsqueda de información.",
-  "preface": "Analyze the following Spanish text for key technological concepts:"
+  "data": "La inteligencia artificial y el aprendizaje automático están transformando la forma en que interactuamos con la tecnología. Los sistemas de etiquetado avanzados utilizan estas tecnologías para mejorar la categorización y búsqueda de información."
 }
 
 ###
@@ -70,8 +65,7 @@ Content-Type: application/json
 
 {
   "id": "test6",
-  "data": "AI & ML are key to Industry 4.0! The integration of IoT devices, big data analytics, and smart algorithms is creating a new paradigm for manufacturing and supply chain management. By 2025, it's estimated that 75% of enterprises will be using AI-powered solutions.",
-  "preface": "Analyze the following text for key concepts in Industry 4.0:"
+  "data": "AI & ML are key to Industry 4.0! The integration of IoT devices, big data analytics, and smart algorithms is creating a new paradigm for manufacturing and supply chain management. By 2025, it's estimated that 75% of enterprises will be using AI-powered solutions."
 }
 
 ###
@@ -82,8 +76,7 @@ Content-Type: application/json
 
 {
   "id": "async_test1",
-  "data": "This is a test for asynchronous processing of text data using AI and ML techniques.",
-  "preface": "Analyze the following text for key technical concepts:"
+  "data": "This is a test for asynchronous processing of text data using AI and ML techniques."
 }
 
 ###

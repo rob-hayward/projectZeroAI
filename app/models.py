@@ -6,7 +6,6 @@ from typing import Dict, Optional
 class InputData(BaseModel):
     id: str
     data: str
-    preface: Optional[str] = None  # Optional context for AI processing
 
 
 class WordDefinitions(BaseModel):
