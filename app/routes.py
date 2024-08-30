@@ -1,19 +1,25 @@
-# /Users/rob/PycharmProjects/projectZeroAI/app/routes.py
 from fastapi import APIRouter, HTTPException, Body, BackgroundTasks
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from app.models import InputData, OutputData, WordDefinitions, TextAnalysis, AsyncProcessingResponse, \
+    AsyncProcessingResult
 from keybert import KeyBERT
+from transformers import pipeline
+import torch
 import logging
-from datetime import datetime, timezone
 from app.config import AI_MODEL_NAME, MAX_KEYWORDS, KEYWORD_DIVERSITY
 import asyncio
 from redis import asyncio as aioredis
 import json
+from collections import Counter
+from typing import Dict, Tuple, Optional, List
 
 router = APIRouter()
 
 # Initialize KeyBERT with the specified model
 kw_model = KeyBERT(model=AI_MODEL_NAME)
+
+# Initialize T5 model for definition generation
+definition_model = pipeline("text2text-generation", model="t5-base", device=0 if torch.cuda.is_available() else -1)
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -21,76 +27,69 @@ logging.basicConfig(level=logging.INFO)
 # Initialize Redis client
 redis = None
 
+
 async def get_redis():
     global redis
     if redis is None:
         redis = aioredis.from_url("redis://localhost")
     return redis
 
-class TextInput(BaseModel):
-    content: str
 
 def simple_offensive_check(text: str) -> bool:
     offensive_words = ['badword1', 'badword2', 'badword3']  # Add your own list of offensive words
     return any(word in text.lower() for word in offensive_words)
 
-@router.post("/process_text")
-async def process_text(body: TextInput = Body(...)):
-    try:
-        logging.info(f"Received text processing request")
-        logging.info(f"Text content: {body.content}")
 
-        if not body.content.strip():
+@router.post("/process_text", response_model=OutputData)
+async def process_text(input_data: InputData = Body(...)):
+    try:
+        logging.info(f"Received text processing request for id: {input_data.id}")
+
+        if not input_data.data.strip():
             raise HTTPException(status_code=422, detail="Content cannot be empty")
 
-        if simple_offensive_check(body.content):
-            raise HTTPException(status_code=400, detail="Content flagged as potentially offensive")
+        word_definitions, keyword_frequencies = process_with_ai(input_data.data, input_data.preface)
+        is_offensive = simple_offensive_check(input_data.data)
 
-        # Generate AI tags
-        ai_tags = process_with_ai(body.content)
+        return OutputData(
+            word_definitions=WordDefinitions(definitions=word_definitions),
+            text_analysis=TextAnalysis(
+                keyword_frequencies=keyword_frequencies,
+                is_offensive=is_offensive
+            )
+        )
 
-        return JSONResponse(content={
-            "ai_tags": ai_tags,
-            "processed_at": datetime.now(timezone.utc).isoformat()
-        })
-
-    except HTTPException as he:
-        logging.error(f"HTTP exception occurred: {str(he)}")
-        raise he
     except Exception as e:
         logging.error(f"An error occurred: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/process_text_async")
-async def process_text_async(background_tasks: BackgroundTasks, body: TextInput = Body(...)):
+
+@router.post("/process_text_async", response_model=AsyncProcessingResponse)
+async def process_text_async(background_tasks: BackgroundTasks, input_data: InputData = Body(...)):
     try:
-        if simple_offensive_check(body.content):
-            raise HTTPException(status_code=400, detail="Content flagged as potentially offensive")
-
-        task_id = f"task_{datetime.now(timezone.utc).isoformat()}"
-        background_tasks.add_task(process_with_ai_async, body.content, task_id)
-        return JSONResponse(content={
-            "task_id": task_id,
-            "message": "Text processing started",
-            "status": "processing"
-        })
-    except HTTPException as he:
-        logging.error(f"HTTP exception occurred: {str(he)}")
-        raise he
+        task_id = f"task_{input_data.id}"
+        background_tasks.add_task(process_with_ai_async, input_data, task_id)
+        return AsyncProcessingResponse(
+            task_id=task_id,
+            message="Text processing started",
+            status="processing"
+        )
     except Exception as e:
         logging.error(f"An error occurred: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/get_result/{task_id}")
+
+@router.get("/get_result/{task_id}", response_model=AsyncProcessingResult)
 async def get_result(task_id: str):
     redis = await get_redis()
     result = await redis.get(task_id)
     if result is None:
-        return JSONResponse(content={"status": "processing"})
-    return JSONResponse(content=json.loads(result))
+        return AsyncProcessingResult(status="processing")
+    return AsyncProcessingResult(status="completed", processed_data=json.loads(result))
 
-def process_with_ai(text: str) -> dict:
-    logging.info("Processing text with KeyBERT for keyword extraction.")
+
+def extract_keywords(text: str) -> Dict[str, int]:
+    logging.info("Extracting keywords and frequencies.")
     try:
         keywords = kw_model.extract_keywords(
             text,
@@ -99,33 +98,59 @@ def process_with_ai(text: str) -> dict:
             top_n=MAX_KEYWORDS,
             diversity=KEYWORD_DIVERSITY
         )
-        return {keyword: score for keyword, score in keywords}
+
+        # Convert to dictionary of keyword frequencies
+        keyword_frequencies = dict(Counter(keyword for keyword, _ in keywords))
+
+        return keyword_frequencies
+
     except Exception as e:
         logging.error(f"Error during keyword extraction: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error during keyword extraction: {str(e)}")
 
-async def process_with_ai_async(text: str, task_id: str):
+
+def generate_definitions(keywords: List[str], text: str, preface: Optional[str] = None) -> Dict[str, str]:
+    logging.info("Generating definitions for keywords.")
     try:
-        # Simulate long-running process
-        await asyncio.sleep(10)
-        keywords = kw_model.extract_keywords(
-            text,
-            keyphrase_ngram_range=(1, 1),
-            stop_words='english',
-            top_n=MAX_KEYWORDS,
-            diversity=KEYWORD_DIVERSITY
+        context = f"{preface}\n\n" if preface else ""
+        definitions = {}
+        for keyword in keywords:
+            prompt = f"Define '{keyword}' in the context of: {context}{text[:200]}..."
+            response = definition_model(prompt, max_length=50, num_return_sequences=1)
+            definitions[keyword] = response[0]['generated_text'].strip()
+        return definitions
+
+    except Exception as e:
+        logging.error(f"Error during definition generation: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error during definition generation: {str(e)}")
+
+
+def process_with_ai(text: str, preface: Optional[str] = None) -> Tuple[Dict[str, str], Dict[str, int]]:
+    # Step 1: Extract keywords and their frequencies (no preface used)
+    keyword_frequencies = extract_keywords(text)
+
+    # Step 2: Generate definitions for the extracted keywords (using preface for context)
+    word_definitions = generate_definitions(list(keyword_frequencies.keys()), text, preface)
+
+    return word_definitions, keyword_frequencies
+
+
+async def process_with_ai_async(input_data: InputData, task_id: str):
+    try:
+        word_definitions, keyword_frequencies = process_with_ai(input_data.data, input_data.preface)
+        is_offensive = simple_offensive_check(input_data.data)
+
+        result = OutputData(
+            word_definitions=WordDefinitions(definitions=word_definitions),
+            text_analysis=TextAnalysis(
+                keyword_frequencies=keyword_frequencies,
+                is_offensive=is_offensive
+            )
         )
-        result = {
-            "ai_tags": {keyword: score for keyword, score in keywords},
-            "processed_at": datetime.now(timezone.utc).isoformat(),
-            "status": "completed"
-        }
+
         redis = await get_redis()
-        await redis.set(task_id, json.dumps(result))
+        await redis.set(task_id, json.dumps(result.dict()))
     except Exception as e:
         logging.error(f"Error during async keyword extraction: {str(e)}")
         redis = await get_redis()
         await redis.set(task_id, json.dumps({"status": "error", "message": str(e)}))
-
-# TODO: Add more AI processing functions as needed
-# TODO: Implement more advanced NLP tasks

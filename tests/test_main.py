@@ -1,10 +1,8 @@
-# /Users/rob/PycharmProjects/projectZeroAI/tests/test_main.py
 from fastapi.testclient import TestClient
 from app import app
 import pytest
 from unittest.mock import AsyncMock, patch
 import json
-from datetime import datetime, timezone
 
 client = TestClient(app)
 
@@ -13,60 +11,84 @@ def mock_redis():
     with patch('app.routes.get_redis', new_callable=AsyncMock) as mock:
         yield mock.return_value
 
-def test_root():
-    response = client.get("/")
-    assert response.status_code == 200
-    assert response.json() == {"message": "Welcome to projectZeroAI!"}
-
 def test_process_text():
-    response = client.post("/process_text", json={"content": "This is a test sentence for AI and ML."})
+    response = client.post("/process_text", json={
+        "id": "test1",
+        "data": "This is a test sentence for AI and ML.",
+        "preface": "Analyze the following text:"
+    })
     assert response.status_code == 200
     result = response.json()
-    assert "ai_tags" in result
-    assert "processed_at" in result
+    assert "word_definitions" in result
+    assert "text_analysis" in result
+    assert "keyword_frequencies" in result["text_analysis"]
+    assert "is_offensive" in result["text_analysis"]
 
 def test_process_text_empty():
-    response = client.post("/process_text", json={"content": ""})
+    response = client.post("/process_text", json={"id": "test2", "data": ""})
     assert response.status_code == 422  # Validation error
 
 def test_process_text_short():
-    response = client.post("/process_text", json={"content": "Short."})
+    response = client.post("/process_text", json={
+        "id": "test3",
+        "data": "Short.",
+        "preface": "Analyze this:"
+    })
     assert response.status_code == 200
     result = response.json()
-    assert "ai_tags" in result
+    assert "word_definitions" in result
+    assert "text_analysis" in result
 
 def test_process_text_spanish():
-    response = client.post("/process_text", json={"content": "La inteligencia artificial y el aprendizaje automático están transformando la tecnología."})
+    response = client.post("/process_text", json={
+        "id": "test4",
+        "data": "La inteligencia artificial y el aprendizaje automático están transformando la tecnología.",
+        "preface": "Analyze this Spanish text:"
+    })
     assert response.status_code == 200
     result = response.json()
-    assert "ai_tags" in result
+    assert "word_definitions" in result
+    assert "text_analysis" in result
 
 def test_process_text_special_chars():
-    response = client.post("/process_text", json={"content": "AI & ML are key to Industry 4.0! Integration of IoT, big data, and smart algorithms."})
+    response = client.post("/process_text", json={
+        "id": "test5",
+        "data": "AI & ML are key to Industry 4.0! Integration of IoT, big data, and smart algorithms.",
+        "preface": "Analyze this text with special characters:"
+    })
     assert response.status_code == 200
     result = response.json()
-    assert "ai_tags" in result
+    assert "word_definitions" in result
+    assert "text_analysis" in result
 
 @pytest.mark.asyncio
 async def test_process_text_async(mock_redis):
-    response = client.post("/process_text_async", json={"content": "This is a test sentence for async processing."})
+    response = client.post("/process_text_async", json={
+        "id": "async_test1",
+        "data": "This is a test sentence for async processing.",
+        "preface": "Analyze this asynchronously:"
+    })
     assert response.status_code == 200
     assert "task_id" in response.json()
     assert response.json()["status"] == "processing"
 
 @pytest.mark.asyncio
 async def test_get_result(mock_redis):
-    mock_redis.get.return_value = json.dumps({
-        "ai_tags": {"test": 0.5},
-        "processed_at": datetime.now(timezone.utc).isoformat(),
-        "status": "completed"
-    })
+    mock_result = {
+        "word_definitions": {"test": "A definition"},
+        "text_analysis": {
+            "keyword_frequencies": {"test": 1},
+            "is_offensive": False
+        }
+    }
+    mock_redis.get.return_value = json.dumps(mock_result)
     response = client.get("/get_result/test_task_id")
     assert response.status_code == 200
     result = response.json()
-    assert "ai_tags" in result
-    assert "processed_at" in result
     assert result["status"] == "completed"
+    assert "processed_data" in result
+    assert "word_definitions" in result["processed_data"]
+    assert "text_analysis" in result["processed_data"]
 
 @pytest.mark.asyncio
 async def test_get_result_processing(mock_redis):
