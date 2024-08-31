@@ -20,10 +20,10 @@ def test_process_text():
     })
     assert response.status_code == 200
     result = response.json()
-    assert "word_definitions" in result
-    assert "text_analysis" in result
-    assert "keyword_frequencies" in result["text_analysis"]
-    assert "is_offensive" in result["text_analysis"]
+    assert "id" in result
+    assert "keyword_extraction" in result
+    assert "keywords" in result["keyword_extraction"]
+    assert isinstance(result["keyword_extraction"]["keywords"], list)
 
 
 def test_process_text_empty():
@@ -38,8 +38,9 @@ def test_process_text_short():
     })
     assert response.status_code == 200
     result = response.json()
-    assert "word_definitions" in result
-    assert "text_analysis" in result
+    assert "id" in result
+    assert "keyword_extraction" in result
+    assert "keywords" in result["keyword_extraction"]
 
 
 def test_process_text_spanish():
@@ -49,8 +50,9 @@ def test_process_text_spanish():
     })
     assert response.status_code == 200
     result = response.json()
-    assert "word_definitions" in result
-    assert "text_analysis" in result
+    assert "id" in result
+    assert "keyword_extraction" in result
+    assert "keywords" in result["keyword_extraction"]
 
 
 def test_process_text_special_chars():
@@ -60,8 +62,9 @@ def test_process_text_special_chars():
     })
     assert response.status_code == 200
     result = response.json()
-    assert "word_definitions" in result
-    assert "text_analysis" in result
+    assert "id" in result
+    assert "keyword_extraction" in result
+    assert "keywords" in result["keyword_extraction"]
 
 
 @pytest.mark.asyncio
@@ -78,12 +81,9 @@ async def test_process_text_async(mock_redis):
 @pytest.mark.asyncio
 async def test_get_result(mock_redis):
     mock_result = {
-        "word_definitions": {
-            "definitions": {"test": "A definition"}
-        },
-        "text_analysis": {
-            "keyword_frequencies": {"test": 1},
-            "is_offensive": False
+        "id": "test_id",
+        "keyword_extraction": {
+            "keywords": ["test", "keyword"]
         }
     }
     mock_redis.get.return_value = json.dumps(mock_result)
@@ -92,8 +92,9 @@ async def test_get_result(mock_redis):
     result = response.json()
     assert result["status"] == "completed"
     assert "processed_data" in result
-    assert "word_definitions" in result["processed_data"]
-    assert "text_analysis" in result["processed_data"]
+    assert "id" in result["processed_data"]
+    assert "keyword_extraction" in result["processed_data"]
+    assert "keywords" in result["processed_data"]["keyword_extraction"]
 
 
 @pytest.mark.asyncio

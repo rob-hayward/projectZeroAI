@@ -17,4 +17,7 @@ API_PORT = int(os.getenv('API_PORT', 5000))
 # Logging configuration
 LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
 
-# Add any other configuration variables needed for your AI processing tasks
+# Redis configuration
+REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost')
+REDIS_TIMEOUT = float(os.getenv('REDIS_TIMEOUT', 5.0))
+

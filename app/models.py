@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Dict, Optional, List
+from typing import List, Optional
 
 
 class InputData(BaseModel):
@@ -7,23 +7,13 @@ class InputData(BaseModel):
     data: str
 
 
-class KeywordInfo(BaseModel):
-    definition: str
-    documents: List[str]
-
-
-class WordDefinitions(BaseModel):
-    definitions: Dict[str, KeywordInfo]
-
-
-class TextAnalysis(BaseModel):
-    keyword_frequencies: Dict[str, int]
-    is_offensive: bool
+class KeywordExtraction(BaseModel):
+    keywords: List[str]
 
 
 class OutputData(BaseModel):
-    word_definitions: WordDefinitions
-    text_analysis: TextAnalysis
+    id: str
+    keyword_extraction: KeywordExtraction
 
 
 class AsyncProcessingResponse(BaseModel):

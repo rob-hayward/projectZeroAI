@@ -26,7 +26,7 @@ Content-Type: application/json
 
 ###
 
-### Test text processing with a longer, more complex input
+### Test text processing with another complex input
 POST http://127.0.0.1:5001/process_text
 Content-Type: application/json
 
