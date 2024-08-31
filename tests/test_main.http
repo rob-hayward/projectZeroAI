@@ -26,6 +26,17 @@ Content-Type: application/json
 
 ###
 
+### Test text processing with a longer, more complex input
+POST http://127.0.0.1:5001/process_text
+Content-Type: application/json
+
+{
+  "id": "test7",
+  "data": "This is a statement about basic human needs for food, water and shelter and the importance of defining excess and deprivation in terms of these needs. The statement also discusses the role of technology in addressing these needs and the potential impact of AI and ML on the future of society."
+}
+
+###
+
 ### Test error handling with empty content
 POST http://127.0.0.1:5001/process_text
 Content-Type: application/json

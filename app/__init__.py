@@ -1,10 +1,17 @@
-# /Users/rob/PycharmProjects/projectZeroAI/conftest.py
 from fastapi import FastAPI
-from .routes import router
+from contextlib import asynccontextmanager
+from .routes import router, get_redis, close_redis
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: create Redis connection
+    await get_redis()
+    yield
+    # Shutdown: close Redis connection
+    await close_redis()
 
-# Include the routes from routes.py
+app = FastAPI(lifespan=lifespan)
+
 app.include_router(router)
 
 @app.get("/")

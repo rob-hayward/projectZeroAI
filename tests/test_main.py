@@ -6,10 +6,12 @@ import json
 
 client = TestClient(app)
 
+
 @pytest.fixture
 def mock_redis():
     with patch('app.routes.get_redis', new_callable=AsyncMock) as mock:
         yield mock.return_value
+
 
 def test_process_text():
     response = client.post("/process_text", json={
@@ -23,9 +25,11 @@ def test_process_text():
     assert "keyword_frequencies" in result["text_analysis"]
     assert "is_offensive" in result["text_analysis"]
 
+
 def test_process_text_empty():
     response = client.post("/process_text", json={"id": "test2", "data": ""})
     assert response.status_code == 422  # Validation error
+
 
 def test_process_text_short():
     response = client.post("/process_text", json={
@@ -37,6 +41,7 @@ def test_process_text_short():
     assert "word_definitions" in result
     assert "text_analysis" in result
 
+
 def test_process_text_spanish():
     response = client.post("/process_text", json={
         "id": "test4",
@@ -46,6 +51,7 @@ def test_process_text_spanish():
     result = response.json()
     assert "word_definitions" in result
     assert "text_analysis" in result
+
 
 def test_process_text_special_chars():
     response = client.post("/process_text", json={
@@ -57,6 +63,7 @@ def test_process_text_special_chars():
     assert "word_definitions" in result
     assert "text_analysis" in result
 
+
 @pytest.mark.asyncio
 async def test_process_text_async(mock_redis):
     response = client.post("/process_text_async", json={
@@ -66,6 +73,7 @@ async def test_process_text_async(mock_redis):
     assert response.status_code == 200
     assert "task_id" in response.json()
     assert response.json()["status"] == "processing"
+
 
 @pytest.mark.asyncio
 async def test_get_result(mock_redis):
@@ -86,6 +94,7 @@ async def test_get_result(mock_redis):
     assert "processed_data" in result
     assert "word_definitions" in result["processed_data"]
     assert "text_analysis" in result["processed_data"]
+
 
 @pytest.mark.asyncio
 async def test_get_result_processing(mock_redis):

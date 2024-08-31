@@ -1,6 +1,5 @@
-# /Users/rob/PycharmProjects/projectZeroAI/app/models.py
 from pydantic import BaseModel
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 
 
 class InputData(BaseModel):
@@ -8,18 +7,23 @@ class InputData(BaseModel):
     data: str
 
 
+class KeywordInfo(BaseModel):
+    definition: str
+    documents: List[str]
+
+
 class WordDefinitions(BaseModel):
-    definitions: Dict[str, str]  # {word1: definition1, word2: definition2, ...}
+    definitions: Dict[str, KeywordInfo]
 
 
 class TextAnalysis(BaseModel):
-    keyword_frequencies: Dict[str, int]  # {word1: frequency1, word2: frequency2, ...}
+    keyword_frequencies: Dict[str, int]
     is_offensive: bool
 
 
 class OutputData(BaseModel):
-    word_definitions: WordDefinitions  # For word nodes
-    text_analysis: TextAnalysis  # For text nodes
+    word_definitions: WordDefinitions
+    text_analysis: TextAnalysis
 
 
 class AsyncProcessingResponse(BaseModel):
@@ -30,4 +34,4 @@ class AsyncProcessingResponse(BaseModel):
 
 class AsyncProcessingResult(BaseModel):
     status: str
-    processed_data: Optional[OutputData] = None  # None if processing incomplete
+    processed_data: Optional[OutputData] = None
